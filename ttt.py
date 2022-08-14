@@ -1,10 +1,34 @@
 from copy import deepcopy
-import re
 from pygame.locals import *
 import pygame
 import sys
 
-def marK_KPcell(grid, shape, pos):
+
+def reset_game():
+    global grid
+    grid = deepcopy(def_grid)
+    return grid
+
+
+def take_action(action):
+    global grid, turn
+    grid, success = mark_cell(grid, turn, action+1)
+    reward = 0
+    winner = None
+    if not success:
+        reward -= 10
+    else:
+        winner = check_for_win(grid)
+        if not winner and not (0 in grid[0] or 0 in grid[1] or 0 in grid[2]):
+            reward -= 5
+            winner = "Draw"
+        elif winner:
+            reward += 10
+        turn = 1 if turn == -1 else -1
+    return grid, turn, winner, reward
+
+
+def mark_cell(grid, shape, pos):
     # Shape -> -1:Circle 0:Empty 1:X
     # Pos -> 1-9 left to right, bottom to top
     i, j = pos_index[pos]
@@ -29,7 +53,7 @@ def check_for_win(grid):
             return i[0]
     # Vertical
     for i in range(3):
-        for j in range(0, 7, 3):
+        for j in range(0+i, 7+i, 3):
             res += n[j]
         if res == 3 or res == -3:
             return n[i]
@@ -76,7 +100,7 @@ def show_game(grid, msg=''):
         pygame.draw.line(screen, (0, 0, 0), (0, i * dif), (300, i * dif), thick)
         pygame.draw.line(screen, (0, 0, 0), (i * dif, 0), (i * dif, 300), thick)
 
-    text2 = font1.render(msg, 1, (0, 0, 0))
+    text2 = font1.render(msg if msg else "Use numpads to play", 1, (0, 0, 0))
     screen.blit(text2, (0, 320))
 
     pygame.display.update()
@@ -90,22 +114,7 @@ def show_game(grid, msg=''):
     #     print("-"*13)
 
 
-if __name__ == '__main__':
-    # Pygame components
-    pygame.font.init()
-    screen = pygame.display.set_mode((300, 400))
-    pygame.display.set_caption("TIC TAC TOE With AI")
-    font1 = pygame.font.SysFont("comicsans", 40)
-    font2 = pygame.font.SysFont("comicsans", 20)
-    dif = 100
-
-    # Base components
-    def_grid = [
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0],
-    ]
-    pos_index = {
+pos_index = {
         1 : (2, 0),
         2 : (2, 1),
         3 : (2, 2),
@@ -116,9 +125,25 @@ if __name__ == '__main__':
         8 : (0, 1),
         9 : (0, 2),
     }
-    grid = deepcopy(def_grid)
+def_grid = [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+    ]
+grid = deepcopy(def_grid)
+turn = 1
+
+if __name__ == '__main__':
+    # Pygame components
+    pygame.font.init()
+    screen = pygame.display.set_mode((300, 400))
+    pygame.display.set_caption("TIC TAC TOE With AI")
+    font1 = pygame.font.SysFont("comicsans", 40)
+    font2 = pygame.font.SysFont("comicsans", 20)
+    dif = 100
+
+    # Base components
     run = True
-    turn = 1
 
     # Game loop
     while run:
@@ -152,7 +177,7 @@ if __name__ == '__main__':
                         player = 9
                     else:
                         show_game(grid, "Invalid Key")
-        grid, success = marK_KPcell(grid, turn, player)
+        grid, success = mark_cell(grid, turn, player)
         if not success:
             player = 0
             show_game(grid, "Cell Marked")
@@ -185,7 +210,7 @@ if __name__ == '__main__':
                             player = 9
                         else:
                             show_game(grid, "Invalid Key")
-            grid, success = marK_KPcell(grid, turn, player)
+            grid, success = mark_cell(grid, turn, player)
             if not success:
                 player = 0
                 show_game(grid, "Cell Marked")
@@ -216,3 +241,5 @@ if __name__ == '__main__':
             turn = 1 if turn == -1 else -1
             
     print("Program End")
+# else:
+    
