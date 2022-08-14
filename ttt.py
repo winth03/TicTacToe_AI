@@ -1,34 +1,11 @@
 from copy import deepcopy
 from collections import defaultdict
+import random
 from pygame.locals import *
 import os.path as path
 import numpy as np
 import pygame
 import sys
-
-
-def reset_game():
-    global grid
-    grid = deepcopy(def_grid)
-    return grid
-
-
-def take_action(action):
-    global grid, turn
-    grid, success = mark_cell(grid, turn, action+1)
-    reward = 0
-    winner = None
-    if not success:
-        reward -= 10
-    else:
-        winner = check_for_win(grid)
-        if not winner and not (0 in grid[0] or 0 in grid[1] or 0 in grid[2]):
-            reward -= 5
-            winner = "Draw"
-        elif winner:
-            reward += 10
-        turn = 1 if turn == -1 else -1
-    return grid, turn, winner, reward
 
 
 def mark_cell(grid, shape, pos):
@@ -164,10 +141,8 @@ def ai_turn():
     global grid, success, player
     player = np.argmax(Q[str(grid)]) + 1
     grid, success = mark_cell(grid, turn, player)
-    if not success:
-        player = 0
     while not success:
-        player += 1
+        player = random.randint(1, 9)
         grid, success = mark_cell(grid, turn, player)
 
 
@@ -215,10 +190,10 @@ if __name__ == '__main__':
                 if event.key == K_KP1:
                     mode = 1
                 elif event.key == K_KP2:
-                    fileName = "q1.npy"
+                    fileName = "q2.npy"
                     pathToFile = "Q_Tables/"+fileName
                     if path.exists(pathToFile):
-                        Q = defaultdict(lambda:np.zeros(9), np.load(pathToFile, allow_pickle=True).item())
+                        Q = defaultdict(lambda:np.array([0.6]*9), np.load(pathToFile, allow_pickle=True).item())
                         print("Q-Table loaded")
                         mode = 2
                     else:
@@ -260,3 +235,39 @@ if __name__ == '__main__':
             turn = 1
         else:
             turn = 1 if turn == -1 else -1
+else:
+    def reset_game():
+        global grid, turn
+        grid = deepcopy(def_grid)
+        turn = 1
+        return str(grid)
+
+
+    def get_key(mydict, val):
+        for key, value in mydict.items():
+            if val == value:
+                return key
+        return "key doesn't exist"
+
+
+    def get_action():
+        actions = []
+        for i in range(3):
+            for j in range(3):
+                if grid[i][j] == 0:
+                    actions.append(get_key(pos_index, (i, j)))
+        return random.choice(actions) - 1
+
+
+    def take_action(action):
+        global grid, turn
+        grid, _ = mark_cell(grid, turn, action+1)
+        reward = 0.0
+        winner = check_for_win(grid)
+        if not winner and not (0 in grid[0] or 0 in grid[1] or 0 in grid[2]):
+            reward = 0.5
+            winner = "Draw"
+        elif winner:
+            reward = 1.0
+        turn = 1 if turn == -1 else -1
+        return str(grid), winner, reward
