@@ -1,5 +1,8 @@
 from copy import deepcopy
+from collections import defaultdict
 from pygame.locals import *
+import os.path as path
+import numpy as np
 import pygame
 import sys
 
@@ -75,7 +78,7 @@ def check_for_win(grid):
         res = 0
 
 
-def show_game(grid, msg=''):
+def show_game(grid, msgs=["Use numpads to play"]):
     s = {
         -1 : "O",
         0 : "-",
@@ -100,8 +103,9 @@ def show_game(grid, msg=''):
         pygame.draw.line(screen, (0, 0, 0), (0, i * dif), (300, i * dif), thick)
         pygame.draw.line(screen, (0, 0, 0), (i * dif, 0), (i * dif, 300), thick)
 
-    text2 = font1.render(msg if msg else "Use numpads to play", 1, (0, 0, 0))
-    screen.blit(text2, (0, 320))
+    for i in range(len(msgs)):
+        text2 = font2.render(msgs[i] , 1, (0, 0, 0))
+        screen.blit(text2, (20, 300 + (i+1) * 20))
 
     pygame.display.update()
     # Legacy
@@ -112,6 +116,59 @@ def show_game(grid, msg=''):
     #         print(s[grid[i][j]], end=" | ")
     #     print()
     #     print("-"*13)
+
+
+def input_read():
+    global run, player
+    for event in pygame.event.get():
+        if event.type == QUIT:
+            run = False
+            pygame.quit()
+            sys.exit()
+        elif event.type == KEYDOWN:
+            if event.key == K_KP1:
+                player = 1
+            elif event.key == K_KP2:
+                player = 2
+            elif event.key == K_KP3:
+                player = 3
+            elif event.key == K_KP4:
+                player = 4
+            elif event.key == K_KP5:
+                player = 5
+            elif event.key == K_KP6:
+                player = 6
+            elif event.key == K_KP7:
+                player = 7
+            elif event.key == K_KP8:
+                player = 8
+            elif event.key == K_KP9:
+                player = 9
+            else:
+                show_game(grid, ["Invalid Key"])
+
+
+def player_turn():
+    global grid, success, player
+    while not (player in range(1, 10)):
+        input_read()
+    grid, success = mark_cell(grid, turn, player)
+    if not success:
+        player = 0
+        show_game(grid, ["Cell Marked"])
+    while not success:
+        player_turn()
+
+
+def ai_turn():
+    global grid, success, player
+    player = np.argmax(Q[str(grid)]) + 1
+    grid, success = mark_cell(grid, turn, player)
+    if not success:
+        player = 0
+    while not success:
+        player += 1
+        grid, success = mark_cell(grid, turn, player)
 
 
 pos_index = {
@@ -144,81 +201,45 @@ if __name__ == '__main__':
 
     # Base components
     run = True
+    mode = 0
+
+    # Choose play mode
+    show_game(grid, ["Choose mode:", "1 : Normal", "2 : AI"])
+    while not mode:
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                    run = False
+                    pygame.quit()
+                    sys.exit()
+            elif event.type == KEYDOWN:
+                if event.key == K_KP1:
+                    mode = 1
+                elif event.key == K_KP2:
+                    fileName = "q1.npy"
+                    pathToFile = "Q_Tables/"+fileName
+                    if path.exists(pathToFile):
+                        Q = defaultdict(lambda:np.zeros(9), np.load(pathToFile, allow_pickle=True).item())
+                        print("Q-Table loaded")
+                        mode = 2
+                    else:
+                        show_game(grid, ["No AI available"])
 
     # Game loop
     while run:
         show_game(grid)
         player = 0
-        # Check for keyboard input
-        while not (player in range(1, 10)):
-            for event in pygame.event.get():
-                if event.type == QUIT:
-                    run = False
-                    pygame.quit()
-                    sys.exit()
-                elif event.type == KEYDOWN:
-                    if event.key == K_KP1:
-                        player = 1
-                    elif event.key == K_KP2:
-                        player = 2
-                    elif event.key == K_KP3:
-                        player = 3
-                    elif event.key == K_KP4:
-                        player = 4
-                    elif event.key == K_KP5:
-                        player = 5
-                    elif event.key == K_KP6:
-                        player = 6
-                    elif event.key == K_KP7:
-                        player = 7
-                    elif event.key == K_KP8:
-                        player = 8
-                    elif event.key == K_KP9:
-                        player = 9
-                    else:
-                        show_game(grid, "Invalid Key")
-        grid, success = mark_cell(grid, turn, player)
-        if not success:
-            player = 0
-            show_game(grid, "Cell Marked")
-        while not success:
-            # Check for keyboard input
-            while not (player in range(1, 10)):
-                for event in pygame.event.get():
-                    if event.type == QUIT:
-                        run = False
-                        pygame.quit()
-                        sys.exit()
-                    elif event.type == KEYDOWN:
-                        if event.key == K_KP1:
-                            player = 1
-                        elif event.key == K_KP2:
-                            player = 2
-                        elif event.key == K_KP3:
-                            player = 3
-                        elif event.key == K_KP4:
-                            player = 4
-                        elif event.key == K_KP5:
-                            player = 5
-                        elif event.key == K_KP6:
-                            player = 6
-                        elif event.key == K_KP7:
-                            player = 7
-                        elif event.key == K_KP8:
-                            player = 8
-                        elif event.key == K_KP9:
-                            player = 9
-                        else:
-                            show_game(grid, "Invalid Key")
-            grid, success = mark_cell(grid, turn, player)
-            if not success:
-                player = 0
-                show_game(grid, "Cell Marked")
+        if mode == 1:
+            player_turn()
+        elif mode == 2:
+            if turn == 1:
+                player_turn()
+            else:
+                ai_turn()
 
         match_end = False
         winner = check_for_win(grid)
         if winner != None:
-            show_game(grid, ("X" if winner == 1 else "O") + " is the winner!")
+            show_game(grid, [("X" if winner == 1 else "O") + " is the winner!"])
             # Wait for restart
             ready = False
             while not ready:
@@ -239,7 +260,3 @@ if __name__ == '__main__':
             turn = 1
         else:
             turn = 1 if turn == -1 else -1
-            
-    print("Program End")
-# else:
-    
