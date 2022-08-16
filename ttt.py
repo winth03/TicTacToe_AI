@@ -103,23 +103,23 @@ def input_read():
             pygame.quit()
             sys.exit()
         elif event.type == KEYDOWN:
-            if event.key == K_KP1:
+            if event.key == K_KP1 or event.key == K_z:
                 player = 1
-            elif event.key == K_KP2:
+            elif event.key == K_KP2 or event.key == K_x:
                 player = 2
-            elif event.key == K_KP3:
+            elif event.key == K_KP3 or event.key == K_c:
                 player = 3
-            elif event.key == K_KP4:
+            elif event.key == K_KP4 or event.key == K_a:
                 player = 4
-            elif event.key == K_KP5:
+            elif event.key == K_KP5 or event.key == K_s:
                 player = 5
-            elif event.key == K_KP6:
+            elif event.key == K_KP6 or event.key == K_d:
                 player = 6
-            elif event.key == K_KP7:
+            elif event.key == K_KP7 or event.key == K_q:
                 player = 7
-            elif event.key == K_KP8:
+            elif event.key == K_KP8 or event.key == K_w:
                 player = 8
-            elif event.key == K_KP9:
+            elif event.key == K_KP9 or event.key == K_e:
                 player = 9
             else:
                 show_game(grid, ["Invalid Key"])
@@ -155,12 +155,12 @@ pos_index = {
         6 : (1, 2),
         7 : (0, 0),
         8 : (0, 1),
-        9 : (0, 2),
+        9 : (0, 2)
     }
 def_grid = [
         [0, 0, 0],
         [0, 0, 0],
-        [0, 0, 0],
+        [0, 0, 0]
     ]
 grid = deepcopy(def_grid)
 turn = 1
@@ -187,9 +187,9 @@ if __name__ == '__main__':
                     pygame.quit()
                     sys.exit()
             elif event.type == KEYDOWN:
-                if event.key == K_KP1:
+                if event.key == K_KP1 or event.key == K_1:
                     mode = 1
-                elif event.key == K_KP2:
+                elif event.key == K_KP2 or event.key == K_2:
                     fileName = "q2.npy"
                     pathToFile = "Q_Tables/"+fileName
                     if path.exists(pathToFile):
