@@ -1,4 +1,3 @@
-from copy import deepcopy
 from collections import defaultdict
 import random
 from pygame.locals import *
@@ -53,6 +52,9 @@ def check_for_win(grid):
         return n[2]
     else:
         res = 0
+    #Draw
+    if not (0 in grid[0] or 0 in grid[1] or 0 in grid[2]):
+        return "draw"
 
 
 def show_game(grid, msgs=["Use numpads to play"]):
@@ -137,9 +139,22 @@ def player_turn():
         player_turn()
 
 
+def hash_state(grid):
+    hash = ""
+    state = np.array(grid, copy=True)
+    for i in np.reshape(state, 9):
+        hash += str(i)
+    return hash
+
+
 def ai_turn():
     global grid, success, player
-    player = np.argmax(Q[str(grid)]) + 1
+    if hash_state(grid) in Q.keys():
+        player = np.argmax(Q[hash_state(grid)]) + 1
+    else:
+        Q[hash_state(grid)] = np.zeros(9)
+        player = random.randint(1, 9)
+    print(Q[hash_state(grid)])
     grid, success = mark_cell(grid, turn, player)
     while not success:
         player = random.randint(1, 9)
@@ -157,12 +172,12 @@ pos_index = {
         8 : (0, 1),
         9 : (0, 2)
     }
-def_grid = [
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0]
-    ]
-grid = deepcopy(def_grid)
+def_grid = np.array([
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0]
+    ])
+grid = np.array(def_grid, copy=True)
 turn = 1
 
 if __name__ == '__main__':
@@ -190,10 +205,10 @@ if __name__ == '__main__':
                 if event.key == K_KP1 or event.key == K_1:
                     mode = 1
                 elif event.key == K_KP2 or event.key == K_2:
-                    fileName = "q2.npy"
+                    fileName = "q1.npy"
                     pathToFile = "Q_Tables/"+fileName
                     if path.exists(pathToFile):
-                        Q = defaultdict(lambda:np.array([0.6]*9), np.load(pathToFile, allow_pickle=True).item())
+                        Q = np.load(pathToFile, allow_pickle=True).item()
                         print("Q-Table loaded")
                         mode = 2
                     else:
@@ -213,8 +228,11 @@ if __name__ == '__main__':
 
         match_end = False
         winner = check_for_win(grid)
-        if winner != None:
-            show_game(grid, [("X" if winner == 1 else "O") + " is the winner!"])
+        if winner:
+            if winner != "draw":
+                show_game(grid, [("X" if winner == 1 else "O") + " is the winner!"])
+            else:
+                show_game(grid, ["Draw!"])
             # Wait for restart
             ready = False
             while not ready:
@@ -226,21 +244,23 @@ if __name__ == '__main__':
                     elif event.type == KEYDOWN:
                         ready = True
             match_end = True
-        if not (0 in grid[0] or 0 in grid[1] or 0 in grid[2]):
-            match_end = True
         
         # Check if the game ends
         if match_end:
-            grid = deepcopy(def_grid)
+            grid = np.array(def_grid, copy=True)
             turn = 1
         else:
             turn = 1 if turn == -1 else -1
 else:
+    def rotate(n=1):
+        return np.rot90(grid, n)
+
+
     def reset_game():
         global grid, turn
-        grid = deepcopy(def_grid)
+        grid = np.array(def_grid, copy=True)
         turn = 1
-        return str(grid)
+        return [hash_state(grid)]
 
 
     def get_key(mydict, val):
@@ -261,13 +281,27 @@ else:
 
     def take_action(action):
         global grid, turn
-        grid, _ = mark_cell(grid, turn, action+1)
+        grid, _ = mark_cell(grid, turn, action + 1)
+        if turn == 1:
+            grid = swap_side()
         reward = 0.0
         winner = check_for_win(grid)
-        if not winner and not (0 in grid[0] or 0 in grid[1] or 0 in grid[2]):
-            reward = 0.5
-            winner = "Draw"
-        elif winner:
-            reward = 1.0
+        
+        if winner:
+            if winner == "draw":
+                reward = 0.5
+            elif winner == -1:
+                reward = 1.0
+            elif winner == 1:
+                reward = -1.0
+
         turn = 1 if turn == -1 else -1
-        return str(grid), winner, reward
+
+        return [hash_state(grid), hash_state(np.rot90(grid)), hash_state(np.rot90(grid, 2)), hash_state(np.rot90(grid, 3))], winner, reward
+
+    def swap_side():
+        to_x = np.where(grid == -1, 1, 0)
+        to_o = np.where(grid == 1, -1, 0)
+        swapped = to_x + to_o
+        return swapped
+        
